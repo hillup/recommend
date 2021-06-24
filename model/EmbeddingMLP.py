@@ -24,7 +24,7 @@ class EmbeddingMLP(nn.Module):
             embed_out = embed_layer(xv[:, i].long())
             embed_out_list.append(embed_out)
         xv = torch.cat(embed_out_list, dim=1)
-        x = torch.cat((xi, xv), dim=1).to(torch.float32)
+        x = torch.cat((xi, xv), dim=1)
         x = self.relu1(self.mlp1(x))
         x = self.relu2(self.mlp2(x))
         x = self.act(self.mlp3(x))
