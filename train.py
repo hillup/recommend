@@ -21,9 +21,10 @@ def train(epoch):
         loss = nn.BCELoss()(torch.squeeze(out, dim=1), y)
         loss.backward()
         optimizer.step()
-        print("epoch {}, batch_idx {}, loss {}".format(epoch, batch_idx, loss))
+        if batch_idx % 200 == 0:
+            print("epoch {}, batch_idx {}, loss {}".format(epoch, batch_idx, loss))
 
-def test(epoch):
+def test(epoch, best_acc=0):
     model.eval()
     test_loss = 0.0  # cost function error
     correct = 0.0
@@ -34,11 +35,14 @@ def test(epoch):
         out = model(xi, xv)
         test_loss += nn.BCELoss()(torch.squeeze(out, dim=1), y).item()
         correct += ((torch.squeeze(out, dim=1) > 0.5) == y).sum().item()
+    if correct/len(loader_test) > best_acc:
+        best_acc = correct/len(loader_test)
     print("epoch {}, test loss {}, test acc {}".format(epoch, test_loss/len(loader_test), correct/len(loader_test)))
+    return best_acc
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -60,15 +64,16 @@ if __name__ == "__main__":
     # build dataset for train and test
     batch_size = args.bs
     train_data = build_dataset(args.train_path)
-    loader_train = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    loader_train = DataLoader(train_data, batch_size=batch_size, num_workers=64, shuffle=True, pin_memory=True)
     test_data = build_dataset(args.test_path)
-    loader_test = DataLoader(test_data, batch_size=batch_size, shuffle=True)
+    loader_test = DataLoader(test_data, batch_size=batch_size, num_workers=64)
 
     # train model
-    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names)
+    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, args.gpu)
     if args.gpu:
         model = model.cuda()
-    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.0)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-2)
+    best_acc = 0
     for ep in range(args.epoches):
         train(ep)
-        test(ep)
+        best_acc = test(ep, best_acc)
