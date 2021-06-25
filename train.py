@@ -37,12 +37,13 @@ def test(epoch, best_acc=0):
         correct += ((torch.squeeze(out, dim=1) > 0.5) == y).sum().item()
     if correct/len(loader_test) > best_acc:
         best_acc = correct/len(loader_test)
+        torch.save(model, args.save_path)
     print("epoch {}, test loss {}, test acc {}".format(epoch, test_loss/len(loader_test), correct/len(loader_test)))
     return best_acc
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -52,6 +53,8 @@ if __name__ == "__main__":
                         help='train data path')
     parser.add_argument('-test_path', action='store_true', default='data/raw/testSamples.csv',
                         help='test data path')
+    parser.add_argument('-save_path', action='store_true', default='checkpoint/EmbeddingMLP/EmbeddingMlp_best.pth',
+                        help='save model path')
 
     args = parser.parse_args()
 
@@ -70,10 +73,12 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device)
+    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device, embed_dim=64)
     if args.gpu:
+
+        
         model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-2)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-3)
     best_acc = 0
     for ep in range(args.epoches):
         train(ep)
