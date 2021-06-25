@@ -15,7 +15,7 @@ def train(epoch):
     for batch_idx, (xi, xv, y) in enumerate(loader_train):
         xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
         if args.gpu:
-            xi, xv, y = xi.cuda(), xv.cuda(), y.cuda()
+            xi, xv, y = xi.to(device), xv.to(device), y.to(device)
         optimizer.zero_grad()
         out = model(xi, xv)
         loss = nn.BCELoss()(torch.squeeze(out, dim=1), y)
@@ -31,7 +31,7 @@ def test(epoch, best_acc=0):
     for batch_idx, (xi, xv, y) in enumerate(loader_test):
         xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
         if args.gpu:
-            xi, xv, y = xi.cuda(), xv.cuda(), y.cuda()
+            xi, xv, y = xi.to(device), xv.to(device), y.to(device)
         out = model(xi, xv)
         test_loss += nn.BCELoss()(torch.squeeze(out, dim=1), y).item()
         correct += ((torch.squeeze(out, dim=1) > 0.5) == y).sum().item()
@@ -42,7 +42,7 @@ def test(epoch, best_acc=0):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -68,10 +68,11 @@ if __name__ == "__main__":
     test_data = build_dataset(args.test_path)
     loader_test = DataLoader(test_data, batch_size=batch_size, num_workers=64)
 
+    device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, args.gpu)
+    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device)
     if args.gpu:
-        model = model.cuda()
+        model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-2)
     best_acc = 0
     for ep in range(args.epoches):
