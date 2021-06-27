@@ -43,7 +43,7 @@ def test(epoch, best_acc=0):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -70,12 +70,12 @@ if __name__ == "__main__":
     loader_train = DataLoader(train_data, batch_size=batch_size, num_workers=64, shuffle=True, pin_memory=True)
     test_data = build_dataset(args.test_path)
     loader_test = DataLoader(test_data, batch_size=batch_size, num_workers=64)
-
+    torch.autograd.set_detect_anomaly(True)
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = DeepFM(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, embed_dim=20)
+    model = DeepFM(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, embed_dim=64)
     model = model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-3)
     best_acc = 0
     for ep in range(args.epoches):
         train(ep)

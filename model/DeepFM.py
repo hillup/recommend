@@ -21,7 +21,7 @@ class DeepFM(nn.Module):
         self.dense_embed = nn.Sequential(nn.Linear(len(continous_feature_names), len(categorial_feature_names)*embed_dim),
                                          nn.BatchNorm1d(len(categorial_feature_names)*embed_dim),
                                          nn.ReLU(inplace=True))
-        self.dnn_part = nn.Sequential(nn.Linear(len(categorial_feature_vocabsize)*embed_dim+len(continous_feature_names), hidden_dim[0]),
+        self.dnn_part = nn.Sequential(nn.Linear(len(categorial_feature_vocabsize)*embed_dim, hidden_dim[0]),
                                         nn.BatchNorm1d(hidden_dim[0]),
                                         nn.ReLU(inplace=True),
                                         nn.Linear(hidden_dim[0], hidden_dim[1]),
@@ -47,19 +47,19 @@ class DeepFM(nn.Module):
         fm_2nd_order_res = []
         for i, embed_layer in enumerate(self.fm_2nd_order_sparse_emb):
             fm_2nd_order_res.append(embed_layer(xv[:, i].long()))
-        fm_2nd_order_res = torch.stack(fm_2nd_order_res, dim=1)   # [bs, n, emb_dim]
+        fm_2nd_concat_1d = torch.stack(fm_2nd_order_res, dim=1)   # [bs, n, emb_dim]
         # sum -> square
-        square_sum_embed = torch.pow(torch.sum(fm_2nd_order_res, dim=1), 2)
+        square_sum_embed = torch.pow(torch.sum(fm_2nd_concat_1d, dim=1), 2)
         # square -> sum
-        sum_square_embed = torch.sum(torch.pow(fm_2nd_order_res, 2), dim=1)
+        sum_square_embed = torch.sum(torch.pow(fm_2nd_concat_1d, 2), dim=1)
         # minus and half
         sub = 0.5 * (square_sum_embed - sum_square_embed)
         fm_2nd_part = torch.sum(sub, 1, keepdim=True)
         # Dnn part
-        dnn_input = fm_2nd_order_res
+        dnn_input = torch.flatten(fm_2nd_concat_1d, 1)
         if xi is not None:
             dense_out = self.dense_embed(xi)
-            dnn_input += dense_out
+            dnn_input = dnn_input + dense_out
         dnn_output = self.dnn_part(dnn_input)
         out = self.act(fm_1st_part + fm_2nd_part + dnn_output)
         return out
