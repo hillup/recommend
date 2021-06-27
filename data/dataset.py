@@ -35,7 +35,33 @@ class build_dataset(Dataset):
     def __len__(self):
         return len(self.data)
 
+class build_din_dataset(Dataset):
+    def __init__(self, root, candidate_movie_col=['movieId'], recent_rate_col=['userRatedMovie1', 'userRatedMovie2',
+        'userRatedMovie3', 'userRatedMovie4', 'userRatedMovie5'], user_profile=['userId', 'userGenre1', 'userGenre2',
+        'userGenre3', 'userGenre4', 'userGenre5', 'userRatingCount', 'userAvgRating', 'userRatingStddev'], context_features=
+    ['movieGenre1', 'movieGenre2', 'movieGenre3', 'releaseYear', 'movieRatingCount', 'movieAvgRating', 'movieRatingStddev']):
+        self.root = root
+        self.data = pd.read_csv(self.root)
+        self.candidate_movie_col = candidate_movie_col
+        self.recent_rate_col = recent_rate_col
+        self.user_profile_col = user_profile
+        self.context_feature_col = context_features
+
+    def __getitem__(self, idx):
+        idx = [idx]
+        candidate_movie_features = self.data.iloc[idx][self.candidate_movie_col].values
+        recent_rate_features = self.data.iloc[idx][self.recent_rate_col].fillna(0).astype(int).values
+        for feature_name in self.user_profile_col[1:6]:
+            self.data[feature_name] = self.data[feature_name].map(gnere_dict)
+        user_profile_features = self.data.iloc[idx][self.user_profile_col].values
+        for feature_name in self.context_feature_col[:3]:
+            self.data[feature_name] = self.data[feature_name].map(gnere_dict)
+        context_features = self.data.iloc[idx][self.context_feature_col].values
+        return torch.from_numpy(candidate_movie_features), torch.from_numpy(recent_rate_features), \
+               torch.from_numpy(user_profile_features), torch.from_numpy(context_features)
+
+    def __len__(self):
+        return len(self.data)
 
 if __name__ == "__main__":
-    dd = build_dataset('raw/trainingSamples.csv')
-    dd.forward()
+    dd = build_din_dataset('raw/trainingSamples.csv')
