@@ -14,8 +14,8 @@ def train(epoch):
     model.train()
     for batch_idx, (xi, xv, y) in enumerate(loader_train):
         xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
-        user_feature = xv[:, -2].unsqueeze(-1)
-        item_feature = xv[:, -1].unsqueeze(-1)
+        user_feature = xv[:, -2]
+        item_feature = xv[:, -1]
         xi, xv, y = user_feature.to(device), item_feature.to(device), y.to(device)
         optimizer.zero_grad()
         out = model(xi, xv)
@@ -31,8 +31,8 @@ def test(epoch, best_acc=0):
     correct = 0.0
     for batch_idx, (xi, xv, y) in enumerate(loader_test):
         xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
-        user_feature = xv[:, -2].unsqueeze(-1)
-        item_feature = xv[:, -1].unsqueeze(-1)
+        user_feature = xv[:, -2]
+        item_feature = xv[:, -1]
         xi, xv, y = user_feature.to(device), item_feature.to(device), y.to(device)
         out = model(xi, xv)
         test_loss += nn.BCELoss()(torch.squeeze(out, dim=1), y).item()
@@ -45,7 +45,7 @@ def test(epoch, best_acc=0):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = NeuralCF(30001, 1001)
+    model = NeuralCF(30001, 1001, embed_dim=64)
     if args.gpu:
         model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-3)
