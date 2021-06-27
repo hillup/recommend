@@ -57,8 +57,9 @@ class build_din_dataset(Dataset):
         for feature_name in self.context_feature_col[:3]:
             self.data[feature_name] = self.data[feature_name].map(gnere_dict)
         context_features = self.data.iloc[idx][self.context_feature_col].values
+        label = self.data.iloc[idx]['label'].values.reshape(-1, 1)
         return torch.from_numpy(candidate_movie_features), torch.from_numpy(recent_rate_features), \
-               torch.from_numpy(user_profile_features), torch.from_numpy(context_features)
+               torch.from_numpy(user_profile_features), torch.from_numpy(context_features), torch.from_numpy(label)
 
     def __len__(self):
         return len(self.data)

@@ -13,14 +13,11 @@ from model.DIN import DIN
 
 def train(epoch):
     model.train()
-    for batch_idx, (xi, xv, y) in enumerate(loader_train):
-        xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
-        from IPython import embed
-        embed()
-        if args.gpu:
-            xi, xv, y = xi.to(device), xv.to(device), y.to(device)
+    for batch_idx, (x0, x1, x2, x3, y) in enumerate(loader_train):
+        x0, x1, x2, x3, y = torch.squeeze(x0, 1).to(torch.float32), torch.squeeze(x1, 1).to(torch.float32), torch.squeeze(x2, 1).to(torch.float32), torch.squeeze(x3, 1).to(torch.float32), torch.squeeze(y).to(torch.float32)
+        x0, x1, x2, x3, y = x0.to(device), x1.to(device), x2.to(device), x3.to(device), y.to(device)
         optimizer.zero_grad()
-        out = model(xi, xv)
+        out = model(x0, x1, x2, x3)
         loss = nn.BCELoss()(torch.squeeze(out, dim=1), y)
         loss.backward()
         optimizer.step()
@@ -31,11 +28,10 @@ def test(epoch, best_acc=0):
     model.eval()
     test_loss = 0.0  # cost function error
     correct = 0.0
-    for batch_idx, (xi, xv, y) in enumerate(loader_test):
-        xi, xv, y = torch.squeeze(xi).to(torch.float32), torch.squeeze(xv), torch.squeeze(y).to(torch.float32)
-        if args.gpu:
-            xi, xv, y = xi.to(device), xv.to(device), y.to(device)
-        out = model(xi, xv)
+    for batch_idx, (x0, x1, x2, x3, y) in enumerate(loader_test):
+        x0, x1, x2, x3, y = torch.squeeze(x0, 1).to(torch.float32), torch.squeeze(x1, 1).to(torch.float32), torch.squeeze(x2, 1).to(torch.float32), torch.squeeze(x3, 1).to(torch.float32), torch.squeeze(y).to(torch.float32)
+        x0, x1, x2, x3, y = x0.to(device), x1.to(device), x2.to(device), x3.to(device), y.to(device)
+        out = model(x0, x1, x2, x3)
         test_loss += nn.BCELoss()(torch.squeeze(out, dim=1), y).item()
         correct += ((torch.squeeze(out, dim=1) > 0.5) == y).sum().item()
     if correct/len(loader_test) > best_acc:
@@ -46,7 +42,7 @@ def test(epoch, best_acc=0):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
+    parser.add_argument('-gpu', action='store_true', default=True, help='use gpu or not')
     parser.add_argument('-bs', type=int, default=128, help='batch size for dataloader')
     parser.add_argument('-epoches', type=int, default=15, help='batch size for dataloader')
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
@@ -66,23 +62,24 @@ if __name__ == "__main__":
     user_profile_dict = collections.OrderedDict(userId=30001, userGenre1=20, userGenre2=20, userGenre3=20, userGenre4=20,
                                                 userGenre5=20)
     context_feature_dict = collections.OrderedDict(movieGenre1=20, movieGenre2=20, movieGenre3=20)
-    # candidate_movie_col = ['movieId']
-    # recent_rate_col = ['userRatedMovie1', 'userRatedMovie2', 'userRatedMovie3', 'userRatedMovie4', 'userRatedMovie5']
-    # user_profile = ['userId', 'userGenre1', 'userGenre2', 'userGenre3', 'userGenre4', 'userGenre5', 'userRatingCount',
-    #                 'userAvgRating', 'userRatingStddev']
-    # context_features = ['movieGenre1', 'movieGenre2', 'movieGenre3', 'releaseYear', 'movieRatingCount',
-    #                     'movieAvgRating', 'movieRatingStddev']
+    candidate_movie_col = ['movieId']
+    recent_rate_col = ['userRatedMovie1', 'userRatedMovie2', 'userRatedMovie3', 'userRatedMovie4', 'userRatedMovie5']
+    user_profile_col = ['userId', 'userGenre1', 'userGenre2', 'userGenre3', 'userGenre4', 'userGenre5', 'userRatingCount',
+                    'userAvgRating', 'userRatingStddev']
+    context_features_col = ['movieGenre1', 'movieGenre2', 'movieGenre3', 'releaseYear', 'movieRatingCount',
+                        'movieAvgRating', 'movieRatingStddev']
     # categorial_feature_vocabsize = [20] * 8 + [30001] + [1001]
     # build dataset for train and test
     batch_size = args.bs
     train_data = build_din_dataset(args.train_path)
-    loader_train = DataLoader(train_data, batch_size=batch_size, num_workers=64, shuffle=True, pin_memory=True)
+    loader_train = DataLoader(train_data, batch_size=batch_size, num_workers=256, shuffle=True, pin_memory=True)
     test_data = build_din_dataset(args.test_path)
-    loader_test = DataLoader(test_data, batch_size=batch_size, num_workers=64)
+    loader_test = DataLoader(test_data, batch_size=batch_size, num_workers=256)
 
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = DIN(candidate_movie_dict, recent_rate_dict, user_profile_dict, context_feature_dict, 20)
+    model = DIN(len(candidate_movie_col), len(recent_rate_col), len(user_profile_col), len(context_features_col), 
+        candidate_movie_dict, recent_rate_dict, user_profile_dict, context_feature_dict, 5, 20, 32)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-3)
     best_acc = 0
