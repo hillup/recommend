@@ -4,15 +4,15 @@ import numpy as np
 
 class WideDeep(nn.Module):
     def __init__(self, categorial_feature_vocabsize, continous_feature_names, categorial_feature_names,
-                 device, embed_dim=10, hidden_dim=[128, 128]):
+                 embed_dim=10, hidden_dim=[128, 128]):
         super().__init__()
         assert len(categorial_feature_vocabsize) == len(categorial_feature_names)
         # deep part
-        self.device = device
         # embedding layer
         self.embedding_layer_list = []
         for i in range(len(categorial_feature_vocabsize)):
             self.embedding_layer_list.append(nn.Embedding(categorial_feature_vocabsize[i], embed_dim))
+        self.embedding_layer_list = nn.ModuleList(self.embedding_layer_list)
         self.deep_mlp1 = nn.Linear(len(categorial_feature_vocabsize) * embed_dim + len(continous_feature_names),
                               hidden_dim[0])
         self.deep_bn1 = nn.BatchNorm1d(hidden_dim[0])
@@ -29,7 +29,7 @@ class WideDeep(nn.Module):
         # deep part
         embed_out_list = []
         for i, embed_layer in enumerate(self.embedding_layer_list):
-            embed_out = embed_layer.to(self.device)(xv[:, i].long())
+            embed_out = embed_layer(xv[:, i].long())
             embed_out_list.append(embed_out)
         xv = torch.cat(embed_out_list, dim=1)
         deep_x = torch.cat((xi, xv), dim=1)

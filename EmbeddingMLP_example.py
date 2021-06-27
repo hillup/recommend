@@ -73,10 +73,8 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device, embed_dim=64)
+    model = EmbeddingMLP(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, embed_dim=64)
     if args.gpu:
-
-        
         model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-3)
     best_acc = 0

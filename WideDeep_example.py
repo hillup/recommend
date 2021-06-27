@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
-    model = WideDeep(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device, embed_dim=64)
+    model = WideDeep(categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, embed_dim=64)
     if args.gpu:
         model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-3)

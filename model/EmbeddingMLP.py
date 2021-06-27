@@ -3,14 +3,14 @@ import numpy as np
 import torch.nn as nn
 
 class EmbeddingMLP(nn.Module):
-    def __init__(self, categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, device, embed_dim=10, hidden_dim=[128, 128]):
+    def __init__(self, categorial_feature_vocabsize, continous_feature_names, categorial_feature_names, embed_dim=10, hidden_dim=[128, 128]):
         super().__init__()
         assert len(categorial_feature_vocabsize) == len(categorial_feature_names)
-        self.device = device
         # embedding layer
         self.embedding_layer_list = []
         for i in range(len(categorial_feature_vocabsize)):
             self.embedding_layer_list.append(nn.Embedding(categorial_feature_vocabsize[i], embed_dim))
+        self.embedding_layer_list = nn.ModuleList(self.embedding_layer_list)
         self.mlp1 = nn.Linear(len(categorial_feature_vocabsize)*embed_dim+len(continous_feature_names), hidden_dim[0])
         self.bn1 = nn.BatchNorm1d(hidden_dim[0])
         self.relu1 = nn.ReLU(inplace=True)
@@ -23,7 +23,7 @@ class EmbeddingMLP(nn.Module):
     def forward(self, xi, xv):
         embed_out_list = []
         for i, embed_layer in enumerate(self.embedding_layer_list):
-            embed_out = embed_layer.to(self.device)(xv[:, i].long())
+            embed_out = embed_layer(xv[:, i].long())
             embed_out_list.append(embed_out)
         xv = torch.cat(embed_out_list, dim=1)
         x = torch.cat((xi, xv), dim=1)
