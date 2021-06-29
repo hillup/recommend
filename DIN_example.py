@@ -79,7 +79,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if args.gpu else "cpu")
     # train model
     model = DIN(len(candidate_movie_col), len(recent_rate_col), len(user_profile_col), len(context_features_col), 
-        candidate_movie_dict, recent_rate_dict, user_profile_dict, context_feature_dict, 5, 20, 32)
+        candidate_movie_dict, recent_rate_dict, user_profile_dict, context_feature_dict, 5, 32, 32)
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-3)
     best_acc = 0
